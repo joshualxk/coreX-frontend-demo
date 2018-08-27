@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
 <head>
-    <meta charset="UTF-8">
+    <meta charset='UTF-8'>
     <title>Title</title>
-    <style type="text/css">
+    <style type='text/css'>
         .leftSide {
             width: 500px;
         }
@@ -23,128 +23,114 @@
     </style>
 </head>
 <body>
-<script src="js/wsapp.js"></script>
+<script src='js/wsapp.js'></script>
 
-<div class="leftSide">
-    <div class="leftSideItem" style="width: 50%">
-        <input type="text" id="token" value="123123" style="width: 100%"/>
+<div class='leftSide'>
+    <div class='leftSideItem' style='width: 20%'>
+        <label>module</label>
     </div>
-    <div class="leftSideItem" style="width: 50%">
-        <button type="button" id="loginBtn">login</button>
+    <div class='leftSideItem' style='width: 80%'>
+        <input type='text' id='module' style='width: 100%'/>
     </div>
-</div>
-<div class="leftSide">
-    <div class="leftSideItem" style="width: 50%">
-        <input type="text" id="module" style="width: 100%"/>
+    <div class='leftSideItem' style='width: 20%'>
+        <label>api</label>
     </div>
-    <div class="leftSideItem" style="width: 50%">
-        <input type="text" id="api" style="width: 100%"/>
+    <div class='leftSideItem' style='width: 80%'>
+        <input type='text' id='api' style='width: 100%'/>
     </div>
 </div>
-<div class="leftSide">
-    <div class="leftSideItem" style="width: 100%">
-        <textarea id="param" style="width: 100%; height: 200px"></textarea>
+<div class='leftSide'>
+    <div class='leftSideItem' style='width: 100%'>
+        <textarea id='param' style='width: 100%; height: 200px'></textarea>
     </div>
 </div>
-<div class="leftSide">
-    <div class="leftSideItem">
-        <button type="button" id="sendBtn">send</button>
+<div class='leftSide'>
+    <div class='leftSideItem'>
+        <button type='button' id='sendBtn'>send</button>
     </div>
-    <div class="leftSideItem">
-        <button type="button" id="refreshBtn">refresh</button>
+    <div class='leftSideItem'>
+        <button type='button' id='refreshBtn'>refresh</button>
     </div>
-    <div class="leftSideItem">
-        <button type="button" id="closeBtn">close</button>
+    <div class='leftSideItem'>
+        <button type='button' id='closeBtn'>close</button>
     </div>
 </div>
 
-<div class="bottomLeftSide" id="btnGroup">
+<div class='bottomLeftSide' id='btnGroup'>
 </div>
 
 <script>
 
-    var ws;
-
-    function connect() {
-        if (ws) {
-            ws.close();
-        }
-        ws = new WebSocket("ws:" + location.host + "/wsapp");
-        <!--ws.binaryType = "arraybuffer";-->
-        ws.onopen = function (ev) {
-            console.log("on open");
-
-            ws.onmessage = function (ev) {
-                console.log("on msg ->", ev.data);
-            };
-
-            ws.onclose = function (ev) {
-                console.log("on close");
-            };
-
-        };
+    function init() {
+        RPC.openWs(() => {
+            console.log("服务器已连接！");
+        }, (resp) => {
+            console.log("收到推送消息->", resp);
+        }, () => {
+            console.log("服务器已断开!");
+        })
     }
 
-    function close() {
-        if (ws) {
-            ws.close();
-            ws = null;
-        }
-    }
+    init();
 
-    connect();
+    document.getElementById('sendBtn').onclick = function () {
+        let module = document.getElementById('module').value || 'x';
+        let api = document.getElementById('api').value;
+        let param = document.getElementById('param').value || '{}';
+        param = JSON.parse(param);
+        let cb;
 
-    document.getElementById("loginBtn").onclick = function () {
-        let module = 'x';
-        let api = "login";
-        let param = '{}';
-        let token = document.getElementById("token").value;
-        let payload = RPC.newPayload(module, api, token, JSON.parse(param));
-        console.log("send ->", payload);
-        ws.send(JSON.stringify(payload));
+        RPC.send(module, api, param, cb);
     };
 
-    document.getElementById("sendBtn").onclick = function () {
-        let module = document.getElementById("module").value || 'x';
-        let api = document.getElementById("api").value;
-        let param = document.getElementById("param").value || '{}';
-        let payload = RPC.newPayload(module, api, '', JSON.parse(param));
-        ws.send(payload);
+    document.getElementById('refreshBtn').onclick = function () {
+        RPC.closeWs(() => {
+            init();
+        })
     };
 
-    document.getElementById("refreshBtn").onclick = function () {
-        connect();
-    };
-
-    document.getElementById("closeBtn").onclick = function () {
-        close();
+    document.getElementById('closeBtn').onclick = function () {
+        RPC.closeWs();
     };
 
     let btns = [];
-    btns.push({
-            module: "demo",
-            api: "match",
-            param: {'1': 1}
+    btns.push(
+        {
+            name: '登录',
+            module: 'x',
+            api: 'login',
+            useDefParam: !false,
+            defParam: {to: '123123'},
+        },
+        {
+            name: '匹配',
+            module: 'demo',
+            api: 'match',
+            useDefParam: true,
+            defParam: {}
         }, {
-            module: "demo",
-            api: "prepare",
-            param: {'1': true}
+            name: 'play',
+            module: 'demo',
+            api: 'play',
+            useDefParam: true,
+            defParam: {1: {t: 0}}
         }
     );
 
     window.onload = function () {
         for (let i in btns) {
-            let str = "<button type=\"button\" id=\"btn" + i + "\" onclick='onBtnclick(" + i + ")'>" + btns[i].api + "</button>";
+            let str = "<button type=\"button\" id=\"btn" + i + "\" onclick='onBtnclick(" + i + ")'>" + (btns[i].name) + "</button>";
             document.getElementById("btnGroup").innerHTML += str;
         }
     };
 
     function onBtnclick(index) {
-        document.getElementById("module").value = btns[index].module;
-        document.getElementById("api").value = btns[index].api;
-        document.getElementById("param").value = JSON.stringify(btns[index].param);
+        document.getElementById('module').value = btns[index].module;
+        document.getElementById('api').value = btns[index].api;
+        if (btns[index].useDefParam) {
+            document.getElementById('param').value = JSON.stringify(btns[index].defParam);
+        }
     }
-
 
 </script>
 </body>
